@@ -1,0 +1,543 @@
+import logging
+import os
+from collections import defaultdict
+from collections.abc import Iterable
+from typing import Any
+from typing import NamedTuple
+from urllib.parse import parse_qs
+from urllib.parse import urlparse
+
+import torch
+import torch.nn as nn
+from safetensors import safe_open
+from termcolor import colored
+from torch.nn.parallel import DataParallel
+from torch.nn.parallel import DistributedDataParallel
+
+from overdrive.utils import comm
+from overdrive.utils.file_io import PathManager
+from overdrive.utils.file_io import PathManagerBase
+
+from .loading import align_and_update_state_dicts
+
+__all__ = ["Checkpointer"]
+
+
+class _IncompatibleKeys(
+    NamedTuple(
+        "IncompatibleKeys",
+        [
+            ("missing_keys", list[str]),
+            ("unexpected_keys", list[str]),
+            ("incorrect_shapes", list[tuple[str, tuple[int], tuple[int]]]),
+        ],
+    )
+):
+    pass
+
+
+class Checkpointer:
+    """
+    A checkpointer that can save/load model as well as extra checkpointable
+    objects.
+    """
+
+    def __init__(
+        self,
+        model: nn.Module,
+        save_dir: str = "",
+        *,
+        save_to_disk: bool | None = None,
+        path_manager: PathManagerBase | None = None,
+        **checkpointables: Any,
+    ):
+        """
+        Args:
+            model (nn.Module): model.
+            save_dir (str): a directory to save and find checkpoints.
+            save_to_disk (bool): if True, save checkpoint to disk, otherwise
+                disable saving for this checkpointer.
+            checkpointables (object): any checkpointable objects, i.e., objects
+                that have the ``state_dict()`` and ``load_state_dict()`` method. For
+                example, it can be used like
+                `Checkpointer(model, "dir", optimizer=optimizer)`.
+        """
+        if save_to_disk is None:
+            save_to_disk = comm.is_main_process()
+
+        if path_manager is None:
+            path_manager = PathManager
+
+        if isinstance(model, (DistributedDataParallel, DataParallel)):
+            model = model.module
+
+        self.model = model
+        self.checkpointables: dict[str, Any] = {}
+        for k, v in checkpointables.items():
+            self.add_checkpointable(k, v)
+
+        self.logger = logging.getLogger(__name__)
+        self.save_dir = save_dir
+        self.save_to_disk = save_to_disk
+        self.path_manager = path_manager
+        self._parsed_url_during_load = None
+
+    def add_checkpointable(self, key: str, checkpointable: Any):
+        """
+        Add checkpointable object for this checkpointer to track.
+
+        Args:
+            key (str): the key used to save the object
+            checkpointable: any object with ``state_dict()`` and
+                ``load_state_dict()`` method
+        """
+        if key in self.checkpointables:
+            raise KeyError(f"Key {key} already used in the Checkpointer")
+
+        if key in {"model", "matching_heuristics", "__author__"}:
+            raise KeyError(f"Key {key} is reserved by the Checkpointer")
+
+        if not callable(getattr(checkpointable, "state_dict", None)) or not callable(getattr(checkpointable, "load_state_dict", None)):
+            raise TypeError("add_checkpointable needs an object with 'state_dict()' and 'load_state_dict()' methods.")
+
+        self.checkpointables[key] = checkpointable
+
+    def save(self, name: str, **kwargs: Any):
+        """
+        Dump model and checkpointables to a file.
+
+        Args:
+            name (str): name of the file.
+            kwargs (dict): extra arbitrary data to save.
+        """
+        if not self.save_dir or not self.save_to_disk:
+            return
+
+        data = {}
+        data["model"] = self.model.state_dict()
+        for key, obj in self.checkpointables.items():
+            data[key] = obj.state_dict()
+        duplicate_keys = data.keys() & kwargs.keys()
+        if duplicate_keys:
+            raise ValueError(f"Extra checkpoint data would overwrite existing keys: " f"{sorted(duplicate_keys)}")
+        data.update(kwargs)
+
+        basename = f"{name}.pth"
+        save_file = os.path.join(self.save_dir, basename)
+
+        if os.path.basename(save_file) != basename:
+            raise ValueError(basename)
+
+        self.logger.info(f"Saving checkpoint to {save_file}")
+        with self.path_manager.open(save_file, "wb") as f:
+            torch.save(data, f)
+        self.tag_last_checkpoint(basename)
+
+    def load(self, path: str, checkpointables: list[str] | None = None) -> dict[str, Any]:
+        """
+        Load from the given checkpoint.
+
+        Args:
+            path (str): path or url to the checkpoint. If empty, will not load
+                anything.
+            checkpointables (list): List of checkpointable names to load. If not
+                specified (None), will load all the possible checkpointables.
+        Returns:
+            dict:
+                extra data loaded from the checkpoint that has not been
+                processed. For example, those saved with
+                :meth:`.save(**extra_data)`.
+        """
+        if self._parsed_url_during_load is not None:
+            raise RuntimeError("load() cannot be called while another checkpoint load is in progress")
+
+        need_sync = False
+
+        if path and isinstance(self.model, DistributedDataParallel):
+            path = self.path_manager.get_local_path(path)
+            has_file = os.path.isfile(path)
+            all_has_file = comm.all_gather(has_file)
+            if not all_has_file[0]:
+                raise OSError(f"File {path} not found on main worker.")
+
+            if not all(all_has_file):
+                self.logger.warning(f"Not all workers can read checkpoint {path}. Training may fail to fully resume.")
+                # TODO: broadcast the checkpoint file contents from main
+                # worker, and load from it instead.
+                need_sync = True
+
+            if not has_file:
+                path = None  # don't load if not readable
+
+        if not path:
+            # no checkpoint provided
+            self.logger.info("No checkpoint found. Initializing model from scratch")
+            return {}
+
+        parsed_url = urlparse(path)
+        self._parsed_url_during_load = parsed_url
+        try:
+            path = parsed_url._replace(query="").geturl()  # remove query from filename
+            path = self.path_manager.get_local_path(path)
+
+            self.logger.info(f"[Checkpointer] Loading from {path} ...")
+
+            # path may not be a local file, but _load_file is responsible to handle it.
+            checkpoint = self._load_file(path)
+            incompatible = self._load_model(checkpoint)
+            if incompatible is not None:  # handle some existing subclasses that returns None
+                self._log_incompatible_keys(incompatible)
+
+            for key in self.checkpointables if checkpointables is None else checkpointables:
+                if key in checkpoint:
+                    self.logger.info(f"Loading {key} from {path} ...")
+                    obj = self.checkpointables[key]
+                    obj.load_state_dict(checkpoint.pop(key))
+
+            if need_sync:
+                self.logger.info("Broadcasting model states from main worker ...")
+                self.model._sync_params_and_buffers()
+
+            # return any further checkpoint data
+            return checkpoint
+        finally:
+            self._parsed_url_during_load = None
+
+    def has_checkpoint(self) -> bool:
+        """
+        Returns:
+            bool: whether a checkpoint exists in the target directory.
+        """
+        save_file = os.path.join(self.save_dir, "last_checkpoint")
+        return self.path_manager.exists(save_file)
+
+    def get_checkpoint_file(self) -> str:
+        """
+        Returns:
+            str: The latest checkpoint file in target directory.
+        """
+        save_file = os.path.join(self.save_dir, "last_checkpoint")
+        try:
+            with self.path_manager.open(save_file, "r") as f:
+                last_saved = f.read().strip()
+        except OSError:
+            # if file doesn't exist, maybe because it has just been
+            # deleted by a separate process
+            return ""
+
+        return os.path.join(self.save_dir, last_saved)
+
+    def get_all_checkpoint_files(self) -> list[str]:
+        """
+        Returns:
+            list: All available checkpoint files (.pth files) in target
+                directory.
+        """
+        all_model_checkpoints = [
+            os.path.join(self.save_dir, file)
+            for file in self.path_manager.ls(self.save_dir)
+            if self.path_manager.isfile(os.path.join(self.save_dir, file)) and (file.endswith(".pth") or file.endswith(".safetensors"))
+        ]
+        return all_model_checkpoints
+
+    def resume_or_load(self, path: str, *, resume: bool = True) -> dict[str, Any]:
+        """
+        If `resume` is True, this method attempts to resume from the last
+        checkpoint, if exists. Otherwise, load checkpoint from the given path.
+        This is useful when restarting an interrupted training job.
+
+        Args:
+            path (str): path to the checkpoint.
+            resume (bool): if True, resume from the last checkpoint if it exists
+                and load the model together with all the checkpointables. Otherwise
+                only load the model without loading any checkpointables.
+
+        Returns:
+            same as :meth:`load`.
+        """
+        if resume and self.has_checkpoint():
+            path = self.get_checkpoint_file()
+            return self.load(path)
+        else:
+            return self.load(path, checkpointables=[])
+
+    def tag_last_checkpoint(self, last_filename_basename: str):
+        """
+        Tag the last checkpoint.
+
+        Args:
+            last_filename_basename (str): the basename of the last filename.
+        """
+        save_file = os.path.join(self.save_dir, "last_checkpoint")
+        with self.path_manager.open(save_file, "w") as f:
+            f.write(last_filename_basename)
+
+    def _load_file(self, f: str) -> dict[str, Any]:
+        """
+        Load a checkpoint file. Can be overwritten by subclasses to support
+        different formats.
+
+        Args:
+            f (str): a locally mounted file path.
+        Returns:
+            dict: with keys "model" and optionally others that are saved by
+                the checkpointer dict["model"] must be a dict which maps strings
+                to torch.Tensor.
+        """
+        if f.endswith(".safetensors"):
+            with safe_open(f, framework="pt", device="cpu") as handle:
+                state_dict = {key: handle.get_tensor(key) for key in handle.keys()}
+                metadata = handle.metadata() or {}
+            loaded = {"model": state_dict}
+            if "matching_heuristics" in metadata:
+                matching_heuristics = metadata["matching_heuristics"].lower()
+                if matching_heuristics in {"true", "1", "yes"}:
+                    loaded["matching_heuristics"] = True
+                elif matching_heuristics in {"false", "0", "no"}:
+                    loaded["matching_heuristics"] = False
+                else:
+                    raise ValueError(f"Unsupported matching_heuristics value in safetensors metadata: {metadata['matching_heuristics']}")
+            if "__author__" in metadata:
+                loaded["__author__"] = metadata["__author__"]
+        else:
+            with self.path_manager.open(f, "rb") as file:
+                loaded = torch.load(file, map_location=torch.device("cpu"))
+
+        if "model" not in loaded:
+            loaded = {"model": loaded}
+
+        if self._parsed_url_during_load is None:
+            raise RuntimeError("`_load_file` must be called inside `load`")
+
+        parsed_url = self._parsed_url_during_load
+        queries = parse_qs(parsed_url.query)
+        if queries.pop("matching_heuristics", "False") == ["True"]:
+            loaded["matching_heuristics"] = True
+
+        if "__author__" in queries:
+            author = queries.pop("__author__")
+            if len(author) != 1:
+                raise ValueError(f"Expected exactly one '__author__' query value, got {author}")
+
+            if "__author__" not in loaded:
+                author = author[0]
+                loaded["__author__"] = author
+
+        if "__author__" in loaded:
+            author = loaded["__author__"]
+            self.logger.info(f"Reading a file from '{author}'")
+
+        if len(queries) > 0:
+            raise ValueError(f"Unsupported query remaining: {queries}, original filename: {parsed_url.geturl()}")
+
+        return loaded
+
+    def _load_model(self, checkpoint: Any) -> _IncompatibleKeys:
+        """
+        Load weights from a checkpoint.
+
+        Args:
+            checkpoint (Any): checkpoint contains the weights.
+
+        Returns:
+            ``NamedTuple`` with ``missing_keys``, ``unexpected_keys``,
+                and ``incorrect_shapes`` fields:
+                * **missing_keys** is a list of str containing the missing keys
+                * **unexpected_keys** is a list of str containing the unexpected keys
+                * **incorrect_shapes** is a list of (key, shape in checkpoint, shape in model)
+
+            This is just like the return value of
+            :func:`torch.nn.Module.load_state_dict`, but with extra support
+            for ``incorrect_shapes``.
+        """
+        checkpoint_state_dict = checkpoint["model"]
+        for k, v in checkpoint_state_dict.items():
+            if not isinstance(v, torch.Tensor):
+                raise ValueError(f"Unsupported type found in checkpoint! {k}: {type(v)}")
+
+        if checkpoint.get("matching_heuristics", False):
+            # convert weights by name-matching heuristics
+            checkpoint["model"] = align_and_update_state_dicts(
+                self.model.state_dict(),
+                checkpoint_state_dict,
+            )
+
+        checkpoint_state_dict = checkpoint.pop("model")
+
+        # if the state_dict comes from a model that was wrapped in a
+        # DataParallel or DistributedDataParallel during serialization,
+        # remove the "module" prefix before performing the matching.
+        _strip_prefix_if_present(checkpoint_state_dict, "module.")
+
+        # workaround https://github.com/pytorch/pytorch/issues/24139
+        model_state_dict = self.model.state_dict()
+        incorrect_shapes = []
+        for k in list(checkpoint_state_dict.keys()):
+            if k in model_state_dict:
+                model_param = model_state_dict[k]
+                # Allow mismatch for uninitialized parameters
+                if nn.parameter.is_lazy(model_param):
+                    continue
+
+                shape_model = tuple(model_param.shape)
+                shape_checkpoint = tuple(checkpoint_state_dict[k].shape)
+                if shape_model != shape_checkpoint:
+                    incorrect_shapes.append((k, shape_checkpoint, shape_model))
+                    checkpoint_state_dict.pop(k)
+        incompatible = self.model.load_state_dict(checkpoint_state_dict, strict=False)
+        return _IncompatibleKeys(
+            missing_keys=incompatible.missing_keys,
+            unexpected_keys=incompatible.unexpected_keys,
+            incorrect_shapes=incorrect_shapes,
+        )
+
+    def _log_incompatible_keys(self, incompatible: _IncompatibleKeys):
+        """
+        Log information about the incompatible keys returned by ``_load_model``.
+        """
+        for k, shape_checkpoint, shape_model in incompatible.incorrect_shapes:
+            self.logger.warning(
+                f"Skip loading parameter '{k}' to the model due to incompatible shapes: {shape_checkpoint} in the checkpoint but {shape_model} in the model! "
+                "You might want to double check if this is expected."
+            )
+        if incompatible.missing_keys:
+            missing_keys = _filter_reused_missing_keys(self.model, incompatible.missing_keys)
+            if missing_keys:
+                self.logger.warning(get_missing_parameters_message(missing_keys))
+
+        if incompatible.unexpected_keys:
+            self.logger.warning(get_unexpected_parameters_message(incompatible.unexpected_keys))
+
+
+def _filter_reused_missing_keys(model: nn.Module, keys: list[str]) -> list[str]:
+    """
+    Filter "missing keys" to not include keys that have been loaded with another name.
+    """
+    keyset = set(keys)
+    param_to_names = defaultdict(set)  # param -> names that points to it
+    for module_prefix, module in _named_modules_with_dup(model):
+        for name, param in list(module.named_parameters(recurse=False)) + list(module.named_buffers(recurse=False)):
+            full_name = (module_prefix + "." if module_prefix else "") + name
+            param_to_names[param].add(full_name)
+
+    for names in param_to_names.values():
+        # if one name appears missing but its alias exists, then this
+        # name is not considered missing
+        if any(n in keyset for n in names) and not all(n in keyset for n in names):
+            [keyset.remove(n) for n in names if n in keyset]
+    return list(keyset)
+
+
+def get_missing_parameters_message(keys: list[str]) -> str:
+    """
+    Get a logging-friendly message to report parameter names (keys) that are in
+    the model but not found in a checkpoint.
+    Args:
+        keys (list[str]): List of keys that were not found in the checkpoint.
+    Returns:
+        str: message.
+    """
+    groups = _group_checkpoint_keys(keys)
+    msg_per_group = sorted(k + _group_to_str(v) for k, v in groups.items())
+    msg = "Some model parameters or buffers are not found in the checkpoint:\n"
+    msg += "\n".join([colored(x, "blue") for x in msg_per_group])
+    return msg
+
+
+def get_unexpected_parameters_message(keys: list[str]) -> str:
+    """
+    Get a logging-friendly message to report parameter names (keys) that are in
+    the checkpoint but not found in the model.
+    Args:
+        keys (list[str]): List of keys that were not found in the model.
+    Returns:
+        str: message.
+    """
+    groups = _group_checkpoint_keys(keys)
+    msg = "The checkpoint state_dict contains keys that are not used by the model:\n"
+    msg += "\n".join("  " + colored(k + _group_to_str(v), "magenta") for k, v in groups.items())
+    return msg
+
+
+def _strip_prefix_if_present(state_dict: dict[str, Any], prefix: str):
+    """
+    Strip the prefix in metadata, if any.
+    Args:
+        state_dict (OrderedDict): a state-dict to be loaded to the model.
+        prefix (str): prefix.
+    """
+    keys = sorted(state_dict.keys())
+    if not keys or not all(len(key) == 0 or key.startswith(prefix) for key in keys):
+        return
+
+    for key in keys:
+        newkey = key[len(prefix) :]
+        state_dict[newkey] = state_dict.pop(key)
+
+    # also strip the prefix in metadata, if any..
+    try:
+        metadata = state_dict._metadata
+    except AttributeError:
+        pass
+    else:
+        for key in list(metadata.keys()):
+            # for the metadata dict, the key can be:
+            # '': for the DDP module, which we want to remove.
+            # 'module': for the actual model.
+            # 'module.xx.xx': for the rest.
+
+            if len(key) == 0:
+                continue
+            newkey = key[len(prefix) :]
+            metadata[newkey] = metadata.pop(key)
+
+
+def _group_checkpoint_keys(keys: list[str]) -> dict[str, list[str]]:
+    """
+    Group keys based on common prefixes. A prefix is the string up to the final
+    "." in each key.
+    Args:
+        keys (list[str]): list of parameter names, i.e. keys in the model
+            checkpoint dict.
+    Returns:
+        dict[list]: keys with common prefixes are grouped into lists.
+    """
+    groups = defaultdict(list)
+    for key in keys:
+        pos = key.rfind(".")
+        if pos >= 0:
+            head, tail = key[:pos], [key[pos + 1 :]]
+        else:
+            head, tail = key, []
+        groups[head].extend(tail)
+    return groups
+
+
+def _group_to_str(group: list[str]) -> str:
+    """
+    Format a group of parameter name suffixes into a loggable string.
+    Args:
+        group (list[str]): list of parameter name suffixes.
+    Returns:
+        str: formated string.
+    """
+    if len(group) == 0:
+        return ""
+
+    if len(group) == 1:
+        return "." + group[0]
+
+    return ".{" + ", ".join(sorted(group)) + "}"
+
+
+def _named_modules_with_dup(model: nn.Module, prefix: str = "") -> Iterable[tuple[str, nn.Module]]:
+    """
+    The same as `model.named_modules()`, except that it includes
+    duplicated modules that have more than one name.
+    """
+    yield prefix, model
+    for name, module in model._modules.items():
+        if module is None:
+            continue
+        submodule_prefix = prefix + ("." if prefix else "") + name
+        yield from _named_modules_with_dup(module, submodule_prefix)
