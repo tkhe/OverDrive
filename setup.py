@@ -69,6 +69,34 @@ def get_extensions():
     return ext_modules
 
 
+def get_model_zoo_configs() -> list[str]:
+    """
+    Return a list of configs to include in package for model zoo. Copy over these configs inside
+    overdrive/model_zoo.
+    """
+    # Use absolute paths while symlinking.
+    source_configs_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "configs")
+    destination = os.path.join(os.path.dirname(os.path.realpath(__file__)), "overdrive", "model_zoo", "configs")
+    # Symlink the config directory inside package to have a cleaner pip install.
+
+    # Remove stale symlink/directory from a previous build.
+    if os.path.exists(source_configs_dir):
+        if os.path.islink(destination):
+            os.unlink(destination)
+        elif os.path.isdir(destination):
+            shutil.rmtree(destination)
+
+    if not os.path.exists(destination):
+        try:
+            os.symlink(source_configs_dir, destination)
+        except OSError:
+            # Fall back to copying if symlink fails: ex. on Windows.
+            shutil.copytree(source_configs_dir, destination)
+
+    config_paths = glob.glob("configs/**/*.py", recursive=True)
+    return config_paths
+
+
 setup(
     name="overdrive",
     version=get_version(),
@@ -76,6 +104,7 @@ setup(
     url="https://github.com/tkhe/overdrive",
     description="overdrive is an open source toolbox for visual tasks.",
     packages=find_packages(exclude=("configs", "tests*")),
+    package_data={"overdrive.model_zoo": get_model_zoo_configs()},
     python_requires=">=3.10",
     install_requires=[
         "Pillow>=7.1",
