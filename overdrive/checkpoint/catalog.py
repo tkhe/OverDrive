@@ -323,7 +323,9 @@ class TIMMModelCatalog:
 
     MODEL_GROUPS: tuple[str, ...] = ("ImageNet",)
 
-    IMAGENET_MODELS = {}
+    IMAGENET_MODELS = {
+        "MobileNet-V1-x1.0": "MobileNetV1/mobilenetv1_x1_0-9ce2f8a7.safetensors",
+    }
 
     @staticmethod
     def get(name: str):
