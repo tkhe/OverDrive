@@ -6,3 +6,4 @@ from .misc import *
 from .nms import *
 from .norm import *
 from .roi_align import *
+from .scale import *
