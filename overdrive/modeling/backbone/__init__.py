@@ -15,3 +15,4 @@ from .regnet import *
 from .resnet import *
 from .resnext import *
 from .shufflenet_v2 import *
+from .swin_transformer import *
