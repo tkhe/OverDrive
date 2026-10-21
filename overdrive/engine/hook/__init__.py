@@ -2,4 +2,5 @@ from .base import *
 from .best_checkpoint_hook import *
 from .checkpoint_hook import *
 from .empty_cache_hook import *
+from .eval_hook import *
 from .priority import *
