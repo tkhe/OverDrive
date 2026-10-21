@@ -7,6 +7,7 @@ from .edgenext import *
 from .ghostnet_v1 import *
 from .ghostnet_v2 import *
 from .hgnet_v1 import *
+from .hgnet_v2 import *
 from .mobilenet_v1 import *
 from .mobilenet_v2 import *
 from .mobilenet_v3 import *
