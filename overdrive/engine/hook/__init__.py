@@ -5,4 +5,5 @@ from .empty_cache_hook import *
 from .eval_hook import *
 from .iteration_time_hook import *
 from .logger_hook import *
+from .lr_scheduler_hook import *
 from .priority import *
