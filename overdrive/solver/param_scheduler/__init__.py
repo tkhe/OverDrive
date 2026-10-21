@@ -6,3 +6,4 @@ from .exponential_param_scheduler import *
 from .linear_param_scheduler import *
 from .multi_step_param_scheduler import *
 from .polynomial_decay_param_scheduler import *
+from .warmup_param_scheduler import *
