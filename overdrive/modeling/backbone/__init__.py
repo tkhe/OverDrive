@@ -14,3 +14,4 @@ from .mobilenet_v3 import *
 from .regnet import *
 from .resnet import *
 from .resnext import *
+from .shufflenet_v2 import *
