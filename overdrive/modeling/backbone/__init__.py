@@ -5,6 +5,7 @@ from .dinov3 import *
 from .dla import *
 from .edgenext import *
 from .ghostnet_v1 import *
+from .ghostnet_v2 import *
 from .mobilenet_v1 import *
 from .mobilenet_v2 import *
 from .mobilenet_v3 import *
