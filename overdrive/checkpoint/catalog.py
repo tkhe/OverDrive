@@ -1,8 +1,12 @@
 import logging
 import os
 
+from tabulate import tabulate
+
 from overdrive.utils.file_io import PathHandler
 from overdrive.utils.file_io import PathManager
+
+__all__ = ["query_model_catalog"]
 
 
 class Detectron2ModelCatalog:
@@ -598,6 +602,138 @@ class TorchvisionPathHandler(PathHandler):
 
     def open(self, path, mode="r", **kwargs):
         return PathManager.open(self.get_local_path(path), mode, **kwargs)
+
+
+_MODEL_CATALOGS = {
+    "detectron2": (
+        Detectron2ModelCatalog,
+        {
+            "ImageNet": "IMAGENET_MODELS",
+            "COCO-Detection": "COCO_DETECTION_MODELS",
+            "COCO-InstanceSegmentation": "COCO_INSTANCE_SEGMENTATION_MODELS",
+            "COCO-Keypoint": "COCO_KEYPOINT_MODELS",
+        },
+    ),
+    "openmmlab": (
+        OpenMMLabModelCatalog,
+        {
+            "mmpretrain": "MMPRETRAIN_MODELS",
+            "mmdet": "MMDET_MODELS",
+            "mmyolo": "MMYOLO_MODELS",
+            "mmseg": "MMSEG_MODELS",
+            "mmpose": "MMPOSE_MODELS",
+        },
+    ),
+    "overdrive": (
+        OverDriveModelCatalog,
+        {
+            "ImageNet": "IMAGENET_MODELS",
+            "COCO-Detection": "COCO_DETECTION_MODELS",
+            "COCO-InstanceSegmentation": "COCO_INSTANCE_SEGMENTATION_MODELS",
+            "COCO-Keypoint": "COCO_KEYPOINT_MODELS",
+            "ADE20K-SemanticSegmentation": "ADE20K_SEMANTIC_SEGMENTATION_MODELS",
+            "VisDrone-Detection": "VISDRONE_DETECTION_MODELS",
+            "PascalVOC-Detection": "PASCALVOC_DETECTION_MODELS",
+            "PascalVOC-SemanticSegmentation": "PASCALVOC_SEMANTIC_SEGMENTATION_MODELS",
+        },
+    ),
+    "timm": (
+        TIMMModelCatalog,
+        {
+            "ImageNet": "IMAGENET_MODELS",
+        },
+    ),
+    "third_party": (
+        ThirdPartyModelCatalog,
+        {
+            "ImageNet": "IMAGENET_MODELS",
+            "COCO-Detection": "COCO_DETECTION_MODELS",
+            "COCO-InstanceSegmentation": "COCO_INSTANCE_SEGMENTATION_MODELS",
+        },
+    ),
+    "torchvision": (
+        TorchvisionModelCatalog,
+        {
+            "ImageNet": "IMAGENET_MODELS",
+        },
+    ),
+}
+
+
+def query_model_catalog(
+    name: str | None = None,
+    *,
+    catalog: str | None = None,
+    group: str | None = None,
+    display: bool = True,
+) -> list[dict[str, str]]:
+    """
+    Query locally registered model weights without downloading them.
+
+    Args:
+        name: Case-insensitive substring of the model name. Leading and trailing
+            whitespace is ignored; None or an empty string matches all names.
+            For example, "ResNet" matches "ResNet-50", but not "ResNeXt-50-32x4d".
+        catalog: Exact, case-sensitive catalog name, such as "timm" or
+            "torchvision". None searches all catalogs.
+        group: Exact, case-sensitive group name, such as "ImageNet",
+            "COCO-Detection", or "mmdet". None searches all groups.
+        display: Print a tabulate table and match count when True.
+
+    Returns:
+        Records with ``catalog``, ``group``, ``model``, and ``uri`` string fields,
+        in dictionary insertion order: catalogs, then groups within each catalog,
+        then models within each group. Filtering preserves this order. All filters
+        must match. Entries with the same model name in different catalogs or
+        groups are retained.
+        URIs use the existing loading schemes, e.g.
+        ``torchvision://ImageNet/ResNet-50``. No matches returns an empty list.
+
+    Raises:
+        ValueError: If catalog is unknown or group is unknown across all catalogs.
+            A known group absent from the selected catalog returns no matches.
+
+    Examples:
+        >>> weights = query_model_catalog()
+        >>> weights = query_model_catalog(catalog="timm")
+        >>> weights = query_model_catalog(group="ImageNet")
+        >>> weights = query_model_catalog("ResNet")
+        >>> weights = query_model_catalog("ResNet", catalog="torchvision")
+        >>> weights = query_model_catalog("ResNet", group="COCO-Detection")
+        >>> weights = query_model_catalog("ResNet", display=False)
+    """
+    if catalog is not None and catalog not in _MODEL_CATALOGS:
+        raise ValueError(f"Unknown catalog {catalog!r}. Available catalogs: {', '.join(sorted(_MODEL_CATALOGS))}")
+
+    available_groups = {key for _, groups in _MODEL_CATALOGS.values() for key in groups}
+    if group is not None and group not in available_groups:
+        raise ValueError(f"Unknown group {group!r}. Available groups: {', '.join(sorted(available_groups))}")
+
+    query = name.strip().casefold() if name is not None else ""
+    records = []
+    for catalog_name, (catalog_class, groups) in _MODEL_CATALOGS.items():
+        if catalog is not None and catalog_name != catalog:
+            continue
+        for group_name, attribute in groups.items():
+            if group is not None and group_name != group:
+                continue
+            for model_name in getattr(catalog_class, attribute):
+                if query in model_name.casefold():
+                    records.append({
+                        "catalog": catalog_name,
+                        "group": group_name,
+                        "model": model_name,
+                        "uri": f"{catalog_name}://{group_name}/{model_name}",
+                    })
+
+    if display:
+        rows = [(record["catalog"], record["group"], record["model"], record["uri"]) for record in records]
+        print(tabulate(rows, headers=["Catalog", "Group", "Model", "URI"], tablefmt="pipe"))
+        print(f"Matched weights: {len(records)}")
+        if not records:
+            print("No matching weights found.")
+
+    return records
 
 
 PathManager.register_handler(Detectron2PathHandler())
