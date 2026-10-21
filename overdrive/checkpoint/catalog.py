@@ -425,6 +425,10 @@ class TorchvisionModelCatalog:
         "MobileNet-V2-x1.0": "MobileNetV2/mobilenetv2_x1_0-4dd72eb8.safetensors",
         "MobileNet-V3-Large-x1.0": "MobileNetV3/mobilenetv3_large_x1_0-f2fa066e.safetensors",
         "MobileNet-V3-Small-x1.0": "MobileNetV3/mobilenetv3_small_x1_0-f4348bc9.safetensors",
+        "ShuffleNet-V2-x0.5": "ShuffleNetV2/shufflenetv2_x0_5-de9aa40e.safetensors",
+        "ShuffleNet-V2-x1.0": "ShuffleNetV2/shufflenetv2_x1_0-8fc1719d.safetensors",
+        "ShuffleNet-V2-x1.5": "ShuffleNetV2/shufflenetv2_x1_5-551a2f40.safetensors",
+        "ShuffleNet-V2-x2.0": "ShuffleNetV2/shufflenetv2_x2_0-4b7b1e83.safetensors",
     }
 
     @staticmethod
