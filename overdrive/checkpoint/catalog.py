@@ -325,6 +325,7 @@ class TIMMModelCatalog:
 
     IMAGENET_MODELS = {
         "MobileNet-V1-x1.0": "MobileNetV1/mobilenetv1_x1_0-9ce2f8a7.safetensors",
+        "GhostNet-V1-x1.0": "GhostNetV1/ghostnetv1_x1_0-635ef344.safetensors",
     }
 
     @staticmethod
