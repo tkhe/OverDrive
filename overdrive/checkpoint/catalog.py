@@ -413,7 +413,13 @@ class TorchvisionModelCatalog:
 
     MODEL_GROUPS: tuple[str, ...] = ("ImageNet",)
 
-    IMAGENET_MODELS = {}
+    IMAGENET_MODELS = {
+        "ResNet-18": "ResNet/resnet18-64a3c2a6.safetensors",
+        "ResNet-34": "ResNet/resnet34-848f9681.safetensors",
+        "ResNet-50": "ResNet/resnet50-4bd85ca6.safetensors",
+        "ResNet-101": "ResNet/resnet101-dba31703.safetensors",
+        "ResNet-152": "ResNet/resnet152-4451f4a3.safetensors",
+    }
 
     @staticmethod
     def get(name: str):
