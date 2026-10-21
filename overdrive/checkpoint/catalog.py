@@ -423,6 +423,8 @@ class TorchvisionModelCatalog:
         "ResNeXt-101-32x8d": "ResNeXt/resnext101_32x8d-b2bfc121.safetensors",
         "ResNeXt-101-64x4d": "ResNeXt/resnext101_64x4d-eb74b497.safetensors",
         "MobileNet-V2-x1.0": "MobileNetV2/mobilenetv2_x1_0-4dd72eb8.safetensors",
+        "MobileNet-V3-Large-x1.0": "MobileNetV3/mobilenetv3_large_x1_0-f2fa066e.safetensors",
+        "MobileNet-V3-Small-x1.0": "MobileNetV3/mobilenetv3_small_x1_0-f4348bc9.safetensors",
     }
 
     @staticmethod
