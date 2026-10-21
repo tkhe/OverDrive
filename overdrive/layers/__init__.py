@@ -8,3 +8,4 @@ from .norm import *
 from .roi_align import *
 from .scale import *
 from .shape_spec import *
+from .transformer import *
