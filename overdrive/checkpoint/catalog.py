@@ -419,6 +419,9 @@ class TorchvisionModelCatalog:
         "ResNet-50": "ResNet/resnet50-4bd85ca6.safetensors",
         "ResNet-101": "ResNet/resnet101-dba31703.safetensors",
         "ResNet-152": "ResNet/resnet152-4451f4a3.safetensors",
+        "ResNeXt-50-32x4d": "ResNeXt/resnext50_32x4d-0dde6f4b.safetensors",
+        "ResNeXt-101-32x8d": "ResNeXt/resnext101_32x8d-b2bfc121.safetensors",
+        "ResNeXt-101-64x4d": "ResNeXt/resnext101_64x4d-eb74b497.safetensors",
     }
 
     @staticmethod
