@@ -7,3 +7,4 @@ from .iteration_time_hook import *
 from .logger_hook import *
 from .lr_scheduler_hook import *
 from .priority import *
+from .switch_dataloader_hook import *
