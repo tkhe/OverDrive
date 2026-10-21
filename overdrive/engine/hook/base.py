@@ -1,9 +1,17 @@
+from typing import TYPE_CHECKING
+from typing import Optional
+
 from .priority import HookPriority
+
+if TYPE_CHECKING:
+    from overdrive.engine.loop import Loop
 
 __all__ = ["Hook"]
 
 
 class Hook:
+    loop: Optional["Loop"] = None
+
     def before_train(self):
         pass
 
