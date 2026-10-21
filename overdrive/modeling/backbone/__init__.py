@@ -3,6 +3,7 @@ from .convnext import *
 from .dinov2 import *
 from .dinov3 import *
 from .dla import *
+from .edgenext import *
 from .mobilenet_v1 import *
 from .mobilenet_v2 import *
 from .mobilenet_v3 import *
