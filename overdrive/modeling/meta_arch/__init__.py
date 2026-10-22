@@ -2,6 +2,7 @@ from .fcos import *
 from .cascade_mask_rcnn import *
 from .cascade_rcnn import *
 from .deeplabv3 import *
+from .deeplabv3plus import *
 from .faster_rcnn import *
 from .keypoint_rcnn import *
 from .mask_rcnn import *
