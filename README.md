@@ -39,6 +39,12 @@ OverDrive requires **PyTorch 2.6+**. Use **Python 3.10+** and a compatible Torch
 
 </details>
 
+## What's New
+
+- **v1.0.0**: Initial release covering object detection, instance segmentation, keypoint detection, semantic segmentation, and panoptic segmentation, with modular models, LazyConfig, training, evaluation, and inference tools.
+
+See the [full changelog](docs/en/changelog.md) for details.
+
 ## Installation
 
 Install PyTorch and TorchVision for your platform using the [official PyTorch installation guide](https://pytorch.org/get-started/locally/), then install OverDrive from source:

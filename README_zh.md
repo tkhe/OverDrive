@@ -40,6 +40,12 @@ OverDrive 要求 **PyTorch 2.6+**，请使用 **Python 3.10+** 和与 PyTorch �
 
 </details>
 
+## 最新动态
+
+- **v1.0.0**：首个版本，覆盖目标检测、实例分割、关键点检测、语义分割和全景分割，提供模块化模型、LazyConfig，以及训练、评估和推理工具。
+
+详细内容见[完整更新日志](docs/zh/changelog.md)。
+
 ## 安装
 
 先按照 [PyTorch 官方安装向导](https://pytorch.org/get-started/locally/)安装适合当前平台的 PyTorch 和 TorchVision，再从源码安装 OverDrive：
