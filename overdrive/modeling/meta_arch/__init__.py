@@ -6,6 +6,7 @@ from .conditional_detr import *
 from .dab_detr import *
 from .deeplabv3 import *
 from .deeplabv3plus import *
+from .deformable_detr import *
 from .detr import *
 from .faster_rcnn import *
 from .keypoint_rcnn import *
