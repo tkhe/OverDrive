@@ -11,5 +11,6 @@ from .detr import *
 from .faster_rcnn import *
 from .keypoint_rcnn import *
 from .mask_rcnn import *
+from .panoptic_fpn import *
 from .retinanet import *
 from .upernet import *
