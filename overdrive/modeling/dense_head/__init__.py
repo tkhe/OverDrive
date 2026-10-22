@@ -1,5 +1,6 @@
 from .autoassign_head import *
 from .base import *
+from .conditional_detr_head import *
 from .detr_head import *
 from .fcos_head import *
 from .retinanet_head import *
