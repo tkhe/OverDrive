@@ -5,3 +5,4 @@ from .gaussian_focal_loss import *
 from .generalized_focal_loss import *
 from .iou_loss import *
 from .l1_loss import *
+from .mse_loss import *
