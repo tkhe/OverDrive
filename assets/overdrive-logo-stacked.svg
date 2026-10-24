@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1585 992" role="img" aria-labelledby="title description">
+  <title id="title">OverDrive logo</title>
+  <desc id="description">Charcoal O and orange-red D with a forward arrow, without speed lines. Centered above the outlined italic OverDrive wordmark.</desc>
+  <defs>
+    <linearGradient id="charcoal" gradientUnits="userSpaceOnUse" x1="450" y1="125" x2="650" y2="635">
+      <stop offset="0" stop-color="#33434e"/>
+      <stop offset="0.46" stop-color="#293943"/>
+      <stop offset="1" stop-color="#14222b"/>
+    </linearGradient>
+    <linearGradient id="charcoal-fold" gradientUnits="userSpaceOnUse" x1="780" y1="240" x2="780" y2="400">
+      <stop stop-color="#141c23"/>
+      <stop offset="1" stop-color="#26323b"/>
+    </linearGradient>
+    <linearGradient id="orange-shell" gradientUnits="userSpaceOnUse" x1="970" y1="123" x2="970" y2="630">
+      <stop stop-color="#ffb800"/>
+      <stop offset="0.3" stop-color="#ff4300"/>
+      <stop offset="0.55" stop-color="#ff2b00"/>
+      <stop offset="1" stop-color="#ff6a00"/>
+    </linearGradient>
+    <linearGradient id="orange-fold" gradientUnits="userSpaceOnUse" x1="1060" y1="260" x2="1060" y2="615">
+      <stop stop-color="#e50d00"/>
+      <stop offset="0.3" stop-color="#ba0700"/>
+      <stop offset="0.55" stop-color="#e42700"/>
+      <stop offset="1" stop-color="#ff6200"/>
+    </linearGradient>
+    <linearGradient id="arrow-ribbon" gradientUnits="userSpaceOnUse" x1="880" y1="315" x2="660" y2="635">
+      <stop stop-color="#ff9400"/>
+      <stop offset="0.5" stop-color="#ff6500"/>
+      <stop offset="1" stop-color="#ed0021"/>
+    </linearGradient>
+    <linearGradient id="wordmark-dark" gradientUnits="userSpaceOnUse" x1="430" y1="665" x2="430" y2="865">
+      <stop stop-color="#2d3d47"/>
+      <stop offset="1" stop-color="#17252e"/>
+    </linearGradient>
+    <linearGradient id="wordmark-orange" gradientUnits="userSpaceOnUse" x1="1090" y1="665" x2="1090" y2="865">
+      <stop stop-color="#ffbf03"/>
+      <stop offset="0.38" stop-color="#ff7c02"/>
+      <stop offset="1" stop-color="#f50a16"/>
+    </linearGradient>
+    <clipPath id="o-clip"><path d="M607 123H710L880 316L808 390L711 280C691 258 669 242 645 242C564 242 499 302 499 376C499 449 553 508 623 508H670L554 625C442 592 364 490 364 377C364 304 395 247 451 190C497 147 551 123 607 123Z"/></clipPath>
+    <clipPath id="d-clip"><path d="M738 123H978C1109 123 1202 236 1202 372C1202 518 1096 630 961 630H760L869 511H914C981 511 1030 464 1030 384C1030 361 1024 337 1011 321L949 245Q946 242 943 242H842Z"/></clipPath>
+  </defs>
+
+  <g id="symbol" fill-rule="evenodd">
+    <path id="o" fill="url(#charcoal)" d="M607 123H710L880 316L808 390L711 280C691 258 669 242 645 242C564 242 499 302 499 376C499 449 553 508 623 508H670L554 625C442 592 364 490 364 377C364 304 395 247 451 190C497 147 551 123 607 123Z"/>
+    <path id="o-fold" fill="url(#charcoal-fold)" clip-path="url(#o-clip)" d="M 637 242 H 843 L 880 316 L 808 392 Z"/>
+    <path id="d" fill="url(#orange-shell)" d="M738 123H978C1109 123 1202 236 1202 372C1202 518 1096 630 961 630H760L869 511H914C981 511 1030 464 1030 384C1030 361 1024 337 1011 321L949 245Q946 242 943 242H842Z"/>
+    <path id="d-fold" fill="url(#orange-fold)" clip-path="url(#d-clip)" d="M943 242C1076 243 1189 333 1173 451C1164 522 1118 587 1065 609L928 646L760 646L869 511H914C981 511 1030 464 1030 384C1030 361 1024 337 1011 321L949 245Q946 242 943 242Z"/>
+    <path id="arrow" fill="url(#arrow-ribbon)" d="M880 315L953 398L731 630H581L808 390Z"/>
+  </g>
+  <g id="wordmark" fill-rule="evenodd" aria-label="OverDrive">
+    <path id="letter-O" fill="url(#wordmark-dark)" d="M164 667H292C315 667 327 681 327 704C327 710 326 716 324 723L300 810C290 846 268 864 230 864H121C93 864 76 847 76 825C76 818 77 812 79 805L106 711C114 684 137 667 164 667ZM182 716H244C253 716 258 723 255 734L236 797C232 810 226 817 216 817H158C149 817 145 811 148 801L167 732C170 721 175 716 182 716Z"/>
+    <path id="letter-v" fill="url(#wordmark-dark)" d="M330 716H381L392 803L451 716H517L414 863H347L326 732Q325 723 330 716Z"/>
+    <path id="letter-e" fill="url(#wordmark-dark)" d="M550 715H639C658 715 669 726 669 745C669 751 668 756 666 762L652 809H543Q541 820 548 820H647L632 863H509C491 863 480 849 480 831C480 823 481 817 483 809L495 761C502 735 522 715 550 715ZM564 758H598Q607 758 604 767V769H555L557 764Q559 758 564 758Z"/>
+    <path id="letter-r" fill="url(#wordmark-dark)" d="M721 715H787L774 762H747C736 762 731 768 728 780L705 863H645L674 755C682 730 700 715 721 715Z"/>
+    <path id="letter-D" fill="url(#wordmark-orange)" d="M807 665H937C969 665 988 686 988 719C988 731 986 745 983 758L966 818C956 849 932 864 900 864H750ZM857 717H904C915 717 920 725 917 737L903 789C899 806 894 814 884 814H830Z"/>
+    <path id="letter-r2" fill="url(#wordmark-orange)" d="M1034 715H1104L1092 761Q1092 764 1090 764H1060C1054 764 1049 768 1047 772L1020 864H961L989 748C996 727 1013 715 1034 715Z"/>
+    <path id="letter-i" fill="url(#wordmark-orange)" d="M1107 716H1164Q1168 730 1165 738L1129 864H1068ZM1139 662H1189L1179 702Q1177 710 1174 710H1109L1111 689C1114 671 1125 662 1139 662Z"/>
+    <path id="letter-v2" fill="url(#wordmark-orange)" d="M1174 714H1223L1232 803L1296 716H1360L1254 864H1184L1167 742Q1165 724 1174 714Z"/>
+    <path id="letter-e2" fill="url(#wordmark-orange)" d="M1395 714H1488C1505 714 1515 727 1515 745C1515 751 1514 756 1512 762L1495 810H1384Q1381 820 1389 820H1490L1474 864H1354C1331 864 1318 852 1318 834C1318 825 1319 817 1322 808L1333 767C1342 741 1366 714 1395 714ZM1403 759H1443Q1450 759 1447 766V769H1397L1398 763Q1400 759 1403 759Z"/>
+  </g>
+</svg>

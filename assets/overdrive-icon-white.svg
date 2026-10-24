@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="275 -131 1015 1015" role="img" aria-labelledby="title description">
+  <title id="title">OverDrive icon</title>
+  <desc id="description">Charcoal O and orange-red D with a forward arrow, without speed lines.</desc>
+  <defs>
+    <linearGradient id="charcoal" gradientUnits="userSpaceOnUse" x1="450" y1="125" x2="650" y2="635">
+      <stop offset="0" stop-color="#33434e"/>
+      <stop offset="0.46" stop-color="#293943"/>
+      <stop offset="1" stop-color="#14222b"/>
+    </linearGradient>
+    <linearGradient id="charcoal-fold" gradientUnits="userSpaceOnUse" x1="780" y1="240" x2="780" y2="400">
+      <stop stop-color="#141c23"/>
+      <stop offset="1" stop-color="#26323b"/>
+    </linearGradient>
+    <linearGradient id="orange-shell" gradientUnits="userSpaceOnUse" x1="970" y1="123" x2="970" y2="630">
+      <stop stop-color="#ffb800"/>
+      <stop offset="0.3" stop-color="#ff4300"/>
+      <stop offset="0.55" stop-color="#ff2b00"/>
+      <stop offset="1" stop-color="#ff6a00"/>
+    </linearGradient>
+    <linearGradient id="orange-fold" gradientUnits="userSpaceOnUse" x1="1060" y1="260" x2="1060" y2="615">
+      <stop stop-color="#e50d00"/>
+      <stop offset="0.3" stop-color="#ba0700"/>
+      <stop offset="0.55" stop-color="#e42700"/>
+      <stop offset="1" stop-color="#ff6200"/>
+    </linearGradient>
+    <linearGradient id="arrow-ribbon" gradientUnits="userSpaceOnUse" x1="880" y1="315" x2="660" y2="635">
+      <stop stop-color="#ff9400"/>
+      <stop offset="0.5" stop-color="#ff6500"/>
+      <stop offset="1" stop-color="#ed0021"/>
+    </linearGradient>
+    <linearGradient id="wordmark-dark" gradientUnits="userSpaceOnUse" x1="430" y1="665" x2="430" y2="865">
+      <stop stop-color="#2d3d47"/>
+      <stop offset="1" stop-color="#17252e"/>
+    </linearGradient>
+    <linearGradient id="wordmark-orange" gradientUnits="userSpaceOnUse" x1="1090" y1="665" x2="1090" y2="865">
+      <stop stop-color="#ffbf03"/>
+      <stop offset="0.38" stop-color="#ff7c02"/>
+      <stop offset="1" stop-color="#f50a16"/>
+    </linearGradient>
+    <clipPath id="o-clip"><path d="M607 123H710L880 316L808 390L711 280C691 258 669 242 645 242C564 242 499 302 499 376C499 449 553 508 623 508H670L554 625C442 592 364 490 364 377C364 304 395 247 451 190C497 147 551 123 607 123Z"/></clipPath>
+    <clipPath id="d-clip"><path d="M738 123H978C1109 123 1202 236 1202 372C1202 518 1096 630 961 630H760L869 511H914C981 511 1030 464 1030 384C1030 361 1024 337 1011 321L949 245Q946 242 943 242H842Z"/></clipPath>
+  </defs>
+  <path id="background" fill="#fff" d="M275 -131h1015v1015H275z"/>
+  <g id="symbol" fill-rule="evenodd">
+    <path id="o" fill="url(#charcoal)" d="M607 123H710L880 316L808 390L711 280C691 258 669 242 645 242C564 242 499 302 499 376C499 449 553 508 623 508H670L554 625C442 592 364 490 364 377C364 304 395 247 451 190C497 147 551 123 607 123Z"/>
+    <path id="o-fold" fill="url(#charcoal-fold)" clip-path="url(#o-clip)" d="M 637 242 H 843 L 880 316 L 808 392 Z"/>
+    <path id="d" fill="url(#orange-shell)" d="M738 123H978C1109 123 1202 236 1202 372C1202 518 1096 630 961 630H760L869 511H914C981 511 1030 464 1030 384C1030 361 1024 337 1011 321L949 245Q946 242 943 242H842Z"/>
+    <path id="d-fold" fill="url(#orange-fold)" clip-path="url(#d-clip)" d="M943 242C1076 243 1189 333 1173 451C1164 522 1118 587 1065 609L928 646L760 646L869 511H914C981 511 1030 464 1030 384C1030 361 1024 337 1011 321L949 245Q946 242 943 242Z"/>
+    <path id="arrow" fill="url(#arrow-ribbon)" d="M880 315L953 398L731 630H581L808 390Z"/>
+  </g>
+
+</svg>
