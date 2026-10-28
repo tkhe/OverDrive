@@ -13,4 +13,5 @@ from .keypoint_rcnn import *
 from .mask_rcnn import *
 from .panoptic_fpn import *
 from .retinanet import *
+from .single_teacher_distillation import *
 from .upernet import *
