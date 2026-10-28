@@ -5,6 +5,7 @@ from .dice_loss import *
 from .gaussian_focal_loss import *
 from .generalized_focal_loss import *
 from .iou_loss import *
+from .kl_divergence import *
 from .l1_loss import *
 from .mse_loss import *
 from .pkd_loss import *
