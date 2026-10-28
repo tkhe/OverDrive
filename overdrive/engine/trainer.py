@@ -1,5 +1,6 @@
 import copy
 import logging
+import os
 import weakref
 from collections import OrderedDict
 from contextlib import nullcontext
@@ -13,13 +14,19 @@ from overdrive.evaluation import DatasetEvaluator
 from overdrive.evaluation import inference_on_dataset
 from overdrive.evaluation import print_csv_format
 from overdrive.utils import comm
+from overdrive.utils.file_io import PathManager
 from overdrive.utils.logger import setup_logger
 
 from . import backend
 from . import hook
 from . import loop
 
-__all__ = ["Trainer"]
+__all__ = [
+    "SingleTeacherDistillationTrainer",
+    "Trainer",
+]
+
+logger = logging.getLogger(__name__)
 
 
 class Trainer:
@@ -250,3 +257,33 @@ class Trainer:
 
     def reset_dataloader(self, dataloader_builder):
         self.backend.reset_dataloader(dataloader_builder)
+
+
+class SingleTeacherDistillationTrainer(Trainer):
+    def resume_or_load(self, resume=True):
+        cfg = self.cfg
+        checkpoint = None
+        if resume:
+            marker = os.path.join(cfg.train.output_dir, "last_checkpoint")
+            if PathManager.isfile(marker):
+                with PathManager.open(marker) as handle:
+                    name = handle.read().strip()
+                if name:
+                    latest = os.path.join(cfg.train.output_dir, name)
+                    if PathManager.isfile(latest):
+                        checkpoint = latest
+            if not checkpoint:
+                logger.warning(f"No latest checkpoint found in {cfg.train.output_dir}; trying train.init_checkpoint.resume")
+
+        if not checkpoint:
+            checkpoint = cfg.train.init_checkpoint.get("resume")
+            if resume and (not checkpoint or not PathManager.isfile(checkpoint)):
+                logger.warning(f"No checkpoint found at train.init_checkpoint.resume={checkpoint!r}; initializing student and teacher")
+                checkpoint = None
+
+        if checkpoint:
+            self.checkpointer.load(checkpoint, checkpointables=None if resume else [])
+        else:
+            model = self.checkpointer.model
+            Checkpointer(model.student).load(cfg.train.init_checkpoint.get("student"))
+            Checkpointer(model.teacher).load(cfg.train.init_checkpoint.get("teacher"))
