@@ -38,12 +38,17 @@ def instantiate(cfg):
     Recursively instantiate objects defined in dictionaries by
     "_target_" and arguments.
 
+    Mappings without "_target_" become plain dictionaries with recursively
+    instantiated values. Lists are processed recursively as well. Structured
+    dataclass configs are converted to dataclass instances.
+
     Args:
-        cfg: a dict-like object with "_target_" that defines the caller, and
-            other keys that define the arguments
+        cfg: a configuration containing dictionaries with "_target_" defining
+            the caller and other keys defining its arguments.
 
     Returns:
-        object instantiated by cfg
+        Object instantiated by cfg, a recursively processed container, or the
+        original value for other inputs.
     """
     from omegaconf import DictConfig
     from omegaconf import ListConfig
@@ -69,7 +74,6 @@ def instantiate(cfg):
             cls = locate(cls_name)
             if cls is None:
                 raise ImportError(cls_name)
-
         else:
             try:
                 cls_name = cls.__module__ + "." + cls.__qualname__
@@ -87,5 +91,9 @@ def instantiate(cfg):
             arg_summary = ", ".join(f"{k}={type(v).__name__}" for k, v in cfg.items())
             logger.error(f"Error when instantiating {cls_name}!\n  Args: ({arg_summary})\n  Error: {e}")
             raise TypeError(f"Failed to instantiate {cls_name} with args ({arg_summary}): {e}") from e
+
+    if isinstance(cfg, abc.Mapping):
+        # Read values from the original config to preserve interpolation context.
+        return {k: instantiate(v) for k, v in cfg.items()}
 
     return cfg  # return as-is if don't know what to do
