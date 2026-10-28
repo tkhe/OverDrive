@@ -6,4 +6,5 @@ from .generalized_focal_loss import *
 from .iou_loss import *
 from .l1_loss import *
 from .mse_loss import *
+from .pkd_loss import *
 from .sigmoid_focal_loss import *
