@@ -5,5 +5,7 @@ from .dab_detr_head import *
 from .deformable_detr_head import *
 from .detr_head import *
 from .fcos_head import *
+from .solo_head import *
+from .solov2_head import *
 from .retinanet_head import *
 from .rpn_head import *

@@ -7,3 +7,4 @@ from .iou_loss import *
 from .l1_loss import *
 from .mse_loss import *
 from .sigmoid_focal_loss import *
+from .sigmoid_dice_loss import *

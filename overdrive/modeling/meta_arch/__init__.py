@@ -15,3 +15,5 @@ from .mask_rcnn import *
 from .panoptic_fpn import *
 from .retinanet import *
 from .upernet import *
+from .solo import *
+from .solov2 import *

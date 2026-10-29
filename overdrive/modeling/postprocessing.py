@@ -3,11 +3,12 @@ import torch
 import torch.nn.functional as F
 
 from overdrive.data.transforms import Transform
-from overdrive.structures import Instances, ROIMasks
+from overdrive.structures import BitMasks, Instances, ROIMasks
 
 __all__ = [
     "detector_postprocess",
     "sem_seg_postprocess",
+    "instance_seg_postprocess",
 ]
 
 
@@ -182,3 +183,32 @@ def sem_seg_postprocess(
         align_corners=align_corners,
     )[0]
     return result
+
+
+def instance_seg_postprocess(
+    results: Instances,
+    output_height: int,
+    output_width: int,
+    mask_threshold: float = 0.5,
+    transforms: Transform | None = None,
+) -> Instances:
+    """Restore full-image mask probabilities and derive tight bounding boxes.
+
+    Unlike detector_postprocess, masks are (N, H, W) image-space probabilities,
+    not ROI masks. Thresholding happens after crop/resize to the output size.
+    """
+    probs = results.pred_masks
+    if probs.ndim != 3 or tuple(probs.shape[-2:]) != tuple(results.image_size):
+        raise ValueError("pred_masks must have shape (N, *results.image_size)")
+    if len(probs):
+        probs = sem_seg_postprocess(probs, results.image_size, output_height, output_width, transforms)
+    else:
+        probs = probs.new_empty((0, output_height, output_width))
+    masks = BitMasks(probs > mask_threshold)
+    keep = masks.nonempty()
+    output = Instances((output_height, output_width))
+    output.scores = results.scores[keep]
+    output.pred_classes = results.pred_classes[keep]
+    output.pred_masks = masks.tensor[keep]
+    output.pred_boxes = masks[keep].get_bounding_boxes().to(probs.device)
+    return output
