@@ -1,4 +1,5 @@
 from .fcos import *
+from .dml import *
 from .autoassign import *
 from .cascade_mask_rcnn import *
 from .cascade_rcnn import *
