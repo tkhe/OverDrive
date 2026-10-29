@@ -1,4 +1,5 @@
 from .cityscapes_evaluation import *
+from .classification_evaluation import *
 from .coco_evaluation import *
 from .evaluator import *
 from .lvis_evaluation import *
