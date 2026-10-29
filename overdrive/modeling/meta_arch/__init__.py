@@ -9,6 +9,7 @@ from .deeplabv3plus import *
 from .deformable_detr import *
 from .detr import *
 from .faster_rcnn import *
+from .image_classifier import *
 from .keypoint_rcnn import *
 from .mask_rcnn import *
 from .panoptic_fpn import *
