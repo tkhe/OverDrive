@@ -9,3 +9,4 @@ from .solo_head import *
 from .solov2_head import *
 from .retinanet_head import *
 from .rpn_head import *
+from .yolact_head import *

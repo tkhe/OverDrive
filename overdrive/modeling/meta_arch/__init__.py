@@ -17,3 +17,4 @@ from .retinanet import *
 from .upernet import *
 from .solo import *
 from .solov2 import *
+from .yolact import *

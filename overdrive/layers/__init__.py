@@ -1,6 +1,7 @@
 from .activation import *
 from .block import *
 from .conv2d import *
+from .fast_nms import *
 from .mask_ops import *
 from .matrix_nms import *
 from .misc import *
