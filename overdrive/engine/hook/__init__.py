@@ -1,4 +1,6 @@
 from .base import *
+from .dml_best_checkpoint_hook import *
+from .multi_lr_scheduler_hook import *
 from .best_checkpoint_hook import *
 from .checkpoint_hook import *
 from .empty_cache_hook import *
